@@ -3,7 +3,7 @@ const axios = require("axios");
 const crypto = require("crypto");
 
 const {
-    SYMBOL, PERIOD, INTERVAL, LIMIT, QUANTITY,
+    SYMBOL, RSI_PERIOD, SMA_PERIOD, INTERVAL, LIMIT, QUANTITY,
     API_URL_PROD, API_URL_DEV, IS_PRODUCTION,
     API_KEY, SECRET_KEY
 } = process.env;
@@ -12,6 +12,8 @@ const API_URL = IS_PRODUCTION ? API_URL_PROD : API_URL_DEV;
 
 const ENDPOINT_GET = `/api/v3/klines?limit=${LIMIT}&interval=${INTERVAL}&symbol=${SYMBOL}`;
 const ENDPOINT_POST = "/api/v3/order";
+
+let isOpened = false;
 
 function averages(prices, period, startIndex) {
     let gains = 0, losses = 0;
@@ -50,6 +52,20 @@ function RSI(prices, period) {
     return 100 - (100 / (1 + rs));
 }
 
+function SMA(prices, period) {
+    if (prices.length < period) {
+        throw new Error("Não há dados suficientes para calcular o SMA.");
+    }
+
+    const smaValues = [];
+    for (let i = period - 1; i < prices.length; i++) {
+        const sum = prices.slice(i - period + 1, i + 1).reduce((acc, price) => acc + price, 0);
+        smaValues.push(sum / period);
+    }
+
+    return smaValues;
+}
+
 async function newOrder(symbol, quantity, side) {
     const orderParams = { symbol, quantity, side };
     const order = {
@@ -78,38 +94,43 @@ async function newOrder(symbol, quantity, side) {
     }
 }
 
-let isOpened = false;
-
 async function start () {
-    const { data } = await axios.get(API_URL + ENDPOINT_GET);
-    const candle = data[data.length - 1];
-    const lastPrice = parseFloat(candle[4]);
+    try {
+        const { data } = await axios.get(API_URL + ENDPOINT_GET);
+        if (!data || !data.length) {
+            throw new Error("Dados inválidos retornados pela API.");
+        }
 
-    console.clear();
-    console.log("Last Price: " + lastPrice);
+        const prices = data.map(k => parseFloat(k[4]));
+        const lastPrice = prices[prices.length - 1];
 
-    const prices = data.map(k => parseFloat(k[4]));
-    const rsi = RSI(prices, PERIOD);
+        console.clear();
+        console.log("Último preço: " + lastPrice);
 
-    console.log("RSI: " + rsi);
-    console.log("Já comprei: " + (isOpened ? "SIM" : "NÃO"));
+        const rsi = RSI(prices, RSI_PERIOD);
+        console.log("RSI: " + rsi);
 
-    if (rsi < 30 && isOpened === false) {
-        console.log("sobrevendido! bom momento para comprar!");
-        isOpened = true;
-        newOrder(SYMBOL, QUANTITY, "BUY");
-    } else if (rsi > 70 && isOpened === true) {
-        console.log("sobrecomprado! bom momento para vender!");
-        newOrder(SYMBOL, QUANTITY, "SELL");
-        isOpened = false;  
-    } else {
-        console.log("aguardar!");
+        const sma = SMA(prices, SMA_PERIOD);
+        const lastSMA = sma[sma.length - 1];
+        console.log("SMA: " + lastSMA);
+
+        console.log("Já comprei: " + (isOpened ? "SIM" : "NÃO"));
+
+        if (rsi < 30 && lastPrice > lastSMA && !isOpened) {
+            console.log("Sobrevendido e acima da SMA! Bom momento para comprar.");
+            isOpened = true;
+            await newOrder(SYMBOL, QUANTITY, "BUY");
+        } else if (rsi > 70 && isOpened) {
+            console.log("Sobrecomprado! Bom momento para vender.");
+            await newOrder(SYMBOL, QUANTITY, "SELL");
+            isOpened = false;
+        } else {
+            console.log("Aguardar...");
+        }
+    } catch (error) {
+        console.error("Erro no loop principal:", error.message);
     }
-
-    // newOrder(SYMBOL, QUANTITY, "BUY");
-    // process.exit(0);
 }
 
 setInterval(start, 3000);
-
 start();
