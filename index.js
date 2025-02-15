@@ -112,7 +112,7 @@ async function start () {
 
         const sma = SMA(prices, SMA_PERIOD);
         const lastSMA = sma[sma.length - 1];
-        console.log("SMA: " + lastSMA);
+        console.log("SMA: " + lastSMA + ` | tendência de ${lastPrice > lastSMA ? "alta" : "baixa"}`);
 
         console.log("Já comprei: " + (isOpened ? "SIM" : "NÃO"));
 
