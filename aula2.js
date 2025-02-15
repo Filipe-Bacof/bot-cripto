@@ -1,19 +1,14 @@
 const axios = require('axios');
 
+const IS_PRODUCTION = false;
 const SYMBOL = "BTCUSDT";
 const PERIOD = 14;
-const INTERVAL = "15m";
 const LIMIT = 100;
 
 const API_URL_DEV = "https://testnet.binance.vision";
-const IS_PRODUCTION = false; // false⬆️⬇️true
 const API_URL_PROD = "https://api.binance.com";
-/**
- *  Altere aqui o valor dessa variável
- */
 const API_URL = IS_PRODUCTION ? API_URL_PROD : API_URL_DEV;
-
-const ENDPOINT_GET = `/api/v3/klines?limit=${LIMIT}&interval=${INTERVAL}&symbol=${SYMBOL}`;
+const ENDPOINT_GET = `/api/v3/klines?limit=${LIMIT}&interval=15m&symbol=${SYMBOL}`;
 
 function averages(prices, period, startIndex) {
     let gains = 0, losses = 0;
