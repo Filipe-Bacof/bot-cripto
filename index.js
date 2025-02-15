@@ -1,16 +1,8 @@
-const axios = require('axios');
+require("dotenv").config();
+const axios = require("axios");
+const crypto = require("crypto");
 
-const SYMBOL = "BTCUSDT";
-const PERIOD = 14;
-const INTERVAL = "15m";
-const LIMIT = 100;
-
-const API_URL_DEV = "https://testnet.binance.vision";
-const IS_PRODUCTION = false; // false⬆️⬇️true
-const API_URL_PROD = "https://api.binance.com";
-/**
- *  Altere aqui o valor dessa variável
- */
+const { SYMBOL, PERIOD, INTERVAL, LIMIT, API_URL_PROD, API_URL_DEV, IS_PRODUCTION } = process.env;
 const API_URL = IS_PRODUCTION ? API_URL_PROD : API_URL_DEV;
 
 const ENDPOINT_GET = `/api/v3/klines?limit=${LIMIT}&interval=${INTERVAL}&symbol=${SYMBOL}`;
@@ -50,6 +42,17 @@ function RSI(prices, period) {
 
     const rs = avgGains / avgLosses;
     return 100 - (100 / (1 + rs));
+}
+
+async function newOrder(symbol, quantity, side) {
+    const orderParams = { symbol, quantity, side };
+    const order = {
+        ...orderParams,
+        type: "MARKET",
+        timestamp: Date.now()
+    };
+
+    const signature = crypto.createHmac("sha256", )
 }
 
 let isOpened = false;
