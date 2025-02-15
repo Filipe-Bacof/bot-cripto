@@ -2,10 +2,16 @@ require("dotenv").config();
 const axios = require("axios");
 const crypto = require("crypto");
 
-const { SYMBOL, PERIOD, INTERVAL, LIMIT, API_URL_PROD, API_URL_DEV, IS_PRODUCTION } = process.env;
+const {
+    SYMBOL, PERIOD, INTERVAL, LIMIT,
+    API_URL_PROD, API_URL_DEV, IS_PRODUCTION,
+    API_KEY, SECRET_KEY
+} = process.env;
+
 const API_URL = IS_PRODUCTION ? API_URL_PROD : API_URL_DEV;
 
 const ENDPOINT_GET = `/api/v3/klines?limit=${LIMIT}&interval=${INTERVAL}&symbol=${SYMBOL}`;
+const ENDPOINT_POST = "/api/v3/order";
 
 function averages(prices, period, startIndex) {
     let gains = 0, losses = 0;
@@ -52,7 +58,24 @@ async function newOrder(symbol, quantity, side) {
         timestamp: Date.now()
     };
 
-    const signature = crypto.createHmac("sha256", )
+    const signature = crypto
+        .createHmac("sha256", SECRET_KEY)
+        .update(new URLSearchParams(order).toString())
+        .digest("hex");
+
+    order.signature = signature;
+
+    try {
+        const { data } = await axios.post(
+            API_URL + ENDPOINT_POST,
+            new URLSearchParams(order).toString(),
+            { headers: { "X-MBX-APIKEY": API_KEY } }
+        );
+
+        console.log(data);
+    } catch (error) {
+        console.error(error.response.data);
+    }
 }
 
 let isOpened = false;
