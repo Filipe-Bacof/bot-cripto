@@ -3,7 +3,7 @@ const axios = require("axios");
 const crypto = require("crypto");
 
 const {
-    SYMBOL, PERIOD, INTERVAL, LIMIT,
+    SYMBOL, PERIOD, INTERVAL, LIMIT, QUANTITY,
     API_URL_PROD, API_URL_DEV, IS_PRODUCTION,
     API_KEY, SECRET_KEY
 } = process.env;
@@ -92,16 +92,22 @@ async function start () {
     const rsi = RSI(prices, PERIOD);
 
     console.log("RSI: " + rsi);
+    console.log("Já comprei: " + (isOpened ? "SIM" : "NÃO"));
 
     if (rsi < 30 && isOpened === false) {
         console.log("sobrevendido! bom momento para comprar!");
         isOpened = true;
+        newOrder(SYMBOL, QUANTITY, "BUY");
     } else if (rsi > 70 && isOpened === true) {
         console.log("sobrecomprado! bom momento para vender!");
+        newOrder(SYMBOL, QUANTITY, "SELL");
         isOpened = false;  
     } else {
         console.log("aguardar!");
     }
+
+    // newOrder(SYMBOL, QUANTITY, "BUY");
+    // process.exit(0);
 }
 
 setInterval(start, 3000);
